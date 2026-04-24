@@ -1,0 +1,226 @@
+QUERY 1
+-- Codigo para generar las tablas de la DB
+CREATE TABLE marcas(
+marcas_id int AUTO_INCREMENT PRIMARY KEY, 
+nombre_marca VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE modelos(
+ marcas_id int,
+ modelos_id int PRIMARY KEY AUTO_INCREMENT,
+ modelo_ref VARCHAR(50) NOT NULL,
+ -- color_01 VARCHAR(30), SE ELIMINO
+ -- color_02 VARCHAR(30), SE ELIMINO
+ -- color_03 VARCHAR(30), SE ELIMINO
+ FOREIGN KEY (marcas_id) REFERENCES marcas(marcas_id)
+);
+-- PASO 1: Crear nueva tabla
+CREATE TABLE colores_modelo (
+    color_modelo_id INT AUTO_INCREMENT PRIMARY KEY,
+    modelo_id INT NOT NULL,
+    color_nombre VARCHAR(30) NOT NULL,
+    orden_color ENUM('principal', 'secundario', 'terciario') NOT NULL,
+    FOREIGN KEY (modelo_id) REFERENCES modelos(modelos_id)
+);
+
+-- Tabla de ventas
+CREATE TABLE ventas (
+ventas_id INT PRIMARY KEY AUTO_INCREMENT,
+fecha DATE NOT NULL,
+cantidad INT,
+modelos_id INT NOT NULL,
+FOREIGN KEY (modelos_id) REFERENCES modelos(modelos_id)
+);
+-- Tabla de colores hexagesimales
+CREATE TABLE color_hex (
+    color_hex_id INT AUTO_INCREMENT PRIMARY KEY,
+    modelos_id INT NOT NULL,
+
+    color_1 VARCHAR(7),
+    color_2 VARCHAR(7),
+    color_3 VARCHAR(7),
+
+    CONSTRAINT fk_color_hex_modelos
+        FOREIGN KEY (modelos_id)
+        REFERENCES modelos(modelos_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+-- =====================================================================
+-- Linea para borrar una tabla
+DROP TABLE modelos;
+-- Listado de CONSULTAS BASICA
+SELECT * FROM referencias.colores_modelo;
+SELECT * FROM referencias.marcas;
+SELECT * FROM referencias.modelos;
+SELECT * FROM modelos WHERE marcas_id = 6;
+
+-- Para que muestre las referencias de una marca en especial
+SELECT m.modelos_id, m.modelo_ref, ma.nombre_marca
+FROM modelos m
+JOIN marcas ma ON m.marcas_id = ma.marcas_id
+WHERE ma.marcas_id = 12;
+
+-- Para que cuente las referencias de esa marca
+SELECT COUNT(*) AS total_estilos
+FROM modelos
+WHERE marcas_id = 1;
+-- Muestra los colores asociados a un modelo especifico
+SELECT modelo_ref , color_nombre FROM modelos
+INNER JOIN colores_modelo ON colores_modelo.modelo_id= modelos.modelos_id;
+
+-- Importar datos desde CSV
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/referencias_02.csv'
+INTO TABLE modelos 
+FIELDS TERMINATED BY ';' 
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(marcas_id, modelo_ref, color_01, color_02, color_03);
+
+-- Mejorar el proceso de ASIGNACION de colores a las referencias
+-- PASO 2: Migrar datos (usando tus datos existentes)
+INSERT INTO colores_modelo (modelo_id, color_nombre, orden_color)
+SELECT modelos_id, color_01, 'principal'
+FROM modelos WHERE color_01 IS NOT NULL AND color_01 != '';
+
+INSERT INTO colores_modelo (modelo_id, color_nombre, orden_color)
+SELECT modelos_id, color_02, 'secundario' 
+FROM modelos WHERE color_02 IS NOT NULL AND color_02 != '';
+
+INSERT INTO colores_modelo (modelo_id, color_nombre, orden_color)
+SELECT modelos_id, color_03, 'terciario'
+FROM modelos WHERE color_03 IS NOT NULL AND color_03 != '';
+
+-- PASO 3: Verificar migración
+SELECT * FROM colores_modelo;
+
+-- Buscar modelos donde un color específico es el principal
+SELECT m.modelo_ref
+FROM modelos m
+JOIN colores_modelo cm ON m.modelos_id = cm.modelo_id
+WHERE cm.color_nombre = 'blanca' 
+  AND cm.orden_color = 'principal';
+
+-- Contar cuántos modelos tienen cada color como principal
+SELECT color_nombre, COUNT(*) as total_principal
+FROM colores_modelo
+WHERE orden_color = 'principal'
+GROUP BY color_nombre
+ORDER BY total_principal DESC;
+
+-- CODIGO PARA INSERTAR NUEVO MODELO con sus respectivos colores
+START TRANSACTION;
+INSERT INTO modelos (marcas_id, modelo_ref) VALUES (6,'327');
+INSERT INTO colores_modelo (modelo_id, color_nombre, orden_color) 
+VALUES 
+(LAST_INSERT_ID(), 'crema', 'principal'),
+(LAST_INSERT_ID(), 'azul', 'secundario'),
+(LAST_INSERT_ID(), 'claro', 'terciario');
+COMMIT;
+-- --------------------------------------------------
+-- para modificar propiedad de una tabla
+-- Si la columna ya existe y solo quieres cambiar el valor por defecto
+ALTER TABLE ventas 
+ALTER COLUMN cantidad SET DEFAULT 1;
+-- Instrucciones para eliminar registros correctamente
+ALTER TABLE modelos 
+DROP COLUMN color_01,
+DROP COLUMN color_02,
+DROP COLUMN color_03;
+
+-- Ver qué modelos vas a eliminar
+SELECT * FROM modelos 
+WHERE modelo_ref IN ('Air Force 1 Premium');
+
+-- PRIMERO: Eliminar los colores asociados a esos modelos
+DELETE FROM colores_modelo 
+WHERE modelo_id IN (
+    SELECT modelos_id FROM modelos 
+    WHERE modelo_ref IN ('Elite')
+);
+
+-- LUEGO: Eliminar los modelos
+DELETE FROM modelos 
+WHERE modelos_id IN (159);
+
+INSERT INTO colores_modelo (modelo_id, color_nombre, orden_color) 
+VALUES 
+(266, 'blanca', 'principal'),
+(266, 'gris', 'secundario'),
+(266, 'lila', 'terciario');
+
+INSERT INTO colores_modelo (modelo_id, color_nombre, orden_color) 
+VALUES 
+(11, 'gris mostaza', 'secundario'),
+(11, 'mora azul', 'terciario');
+
+-- ##############--------------#################------------------#####################------------------
+-- ##############--------------#################------------------#####################------------------
+
+COLORES MODELO
+-- SELECT "columna" FROM "tabla"
+SELECT modelo_ref FROM modelos WHERE marcas_id=2;
+
+-- Para que cuente las referencias de esa marca
+SELECT COUNT(*) AS total_estilos
+FROM modelos
+WHERE marcas_id = 2;
+
+SELECT color_nombre, modelos_id, modelo_ref  FROM colores_modelo
+INNER JOIN modelos ON colores_modelo.modelo_id= modelos.modelos_id
+WHERE marcas_id=2;
+
+SELECT * FROM colores_modelo;
+SELECT * FROM modelos;
+
+-- Para que cuente las referencias de esa marca
+SELECT COUNT(*) AS total_estilos
+FROM modelos
+WHERE marcas_id = 1;
+-- Lineas para ver MODELOS_ID, marcas_ID, modelo_ref , color_nombre
+SELECT modelos_id, marcas_id, modelo_ref, color_nombre  FROM modelos
+INNER JOIN colores_modelo ON modelos.modelos_id = colores_modelo.modelo_id;
+WHERE marcas_id = 6;
+
+
+SELECT m.modelo_ref , m.modelos_id
+FROM modelos m
+JOIN colores_modelo cm ON m.modelos_id = cm.modelo_id
+WHERE cm.color_nombre = 'verde' 
+  AND cm.orden_color = 'secundario';
+
+-- ##############--------------#################------------------#####################------------------
+-- ##############--------------#################------------------#####################------------------
+
+VENTAS
+
+-- Nuevas consultas con la tabla ventas
+SELECT modelo_ref, marcas_id, cantidad FROM modelos
+INNER JOIN ventas ON ventas.modelos_id=modelos.modelos_id WHERE marcas_id=1;
+-- ===================================================================================
+-- ENTRELAZAR tres o mas tablas usando inner join
+SELECT modelos.modelo_ref, modelos.modelos_id, modelos.marcas_id, ventas.cantidad, colores_modelo.color_nombre FROM modelos
+INNER JOIN ventas ON ventas.modelos_id=modelos.modelos_id
+INNER JOIN colores_modelo ON colores_modelo.modelo_id=modelos.modelos_id WHERE fecha="2025-10-19" AND orden_color="principal";
+-- ###################################################################################
+SELECT SUM(cantidad) AS total
+FROM ventas WHERE fecha="2025-10-12";
+-- #####################################################################################
+-- Modelo mas vendido
+SELECT modelos_id, COUNT(*) as veces_vendido
+FROM ventas
+GROUP BY modelos_id
+ORDER BY veces_vendido DESC;
+-- LIMIT 1;
+-- ######################################################################################
+SELECT * FROM referencias.ventas;
+
+-- Ingresar nuevas ventas 
+SET @prefijo_fecha = '	';
+INSERT INTO ventas (ventas_id, fecha, cantidad, modelos_id)
+VALUES
+(279, (@prefijo_fecha), 1,),
+(280, (@prefijo_fecha), 1,);
+
+
+
