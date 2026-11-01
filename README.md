@@ -82,6 +82,5 @@ Copie el CSV a la carpeta de carga de MySQL (`C:/ProgramData/MySQL/MySQL Server 
 
 ## Notas
 
-- `base/readme.md` está vacío.
 - Al final de `sql.txt` hay un `INSERT INTO ventas` incompleto (le falta el `modelos_id`); es una plantilla, no se ejecuta tal cual.
 - La ruta de `LOAD DATA INFILE` es la de MySQL en Windows; cámbiela si usa otro sistema.
